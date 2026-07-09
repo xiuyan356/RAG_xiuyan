@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《三体》时间线 · Quantum RAG Agent</title>
+    <style>
+        :root {
+            --bg-main: #070913;
+            --bg-sidebar: #0f1322;
+            --bg-chat: #0b0f19;
+            --accent-cyan: #00f2fe;
+            --accent-blue: #3b82f6;
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --border-glow: rgba(0, 242, 254, 0.08);
+            --bubble-user: linear-gradient(135deg, #1e40af, #3b82f6);
+            --bubble-bot: #131a30;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ================== 左侧现代感侧边栏 ================== */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #fff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .brand span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* 模拟新建对话/功能按钮 */
+        .new-chat-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(0, 242, 254, 0.05);
+            border-color: rgba(0, 242, 254, 0.3);
+            color: var(--accent-cyan);
+        }
+
+        .system-monitor {
+            margin-top: 10px;
+        }
+
+        .monitor-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .monitor-item span:last-child {
+            color: var(--accent-cyan);
+            font-family: monospace;
+        }
+
+        .status-online {
+            color: #10b981 !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .sidebar-footer {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ================== 右侧全屏工作区 ================== */
+        .main-chat-workspace {
+            flex: 1;
+            background-color: var(--bg-chat);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 现代流式对话滚动区 */
+        .chat-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 0 140px 0; /* 为底部悬浮框留出充足空间 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 限制内容的响应式阅读宽度，两边无限平铺，但文字不失散 */
+        .content-width-limiter {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .message-row {
+            width: 100%;
+            padding: 24px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* 用户消息和AI消息采用主流的背景色块交替或靠右设计 */
+        .message-row.user-type .bubble-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-row.user-type .message-bubble {
+            background: var(--bubble-user);
+            color: #fff;
+            border-radius: 18px;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .message-row.bot-type .message-bubble {
+            background: var(--bubble-bot);
+            color: var(--text-main);
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .message-bubble {
+            max-width: 85%;
+            padding: 14px 22px;
+            font-size: 0.98rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .thinking-state {
+            color: var(--accent-cyan);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ================== 悬浮居中流线型输入区 ================== */
+        .dock-input-wrapper {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(transparent, var(--bg-chat) 40%);
+            padding: 30px 0 40px 0;
+            pointer-events: none; /* 让上层空白可以点击滚动 */
+        }
+
+        .dock-input-box {
+            max-width: 760px;
+            margin: 0 auto;
+            background: #131826;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            pointer-events: auto; /* 恢复交互 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .dock-input-box:focus-within {
+            border-color: rgba(0, 242, 254, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.08);
+        }
+
+        .dock-input-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 1rem;
+            padding: 10px 4px;
+        }
+
+        .dock-input-box input::placeholder {
+            color: #4b5563;
+        }
+
+        .execute-btn {
+            background: rgba(0, 242, 254, 0.06);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            color: var(--accent-cyan);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .execute-btn:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: transparent;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        }
+
+        /* 动画与滚动美化 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-stream::-webkit-scrollbar { width: 6px; }
+        .chat-stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-top">
+            <div class="brand">
+                <h1>THREE-BODY RAG</h1>
+                <span>Quantum Knowledge Graph</span>
+            </div>
+            <button class="new-chat-btn" onclick="window.location.reload()">
+                <span>+</span> 清空并重启图节点
+            </button>
+            <div class="system-monitor">
+                <div class="monitor-item">
+                    <span>LangGraph 引擎</span>
+                    <span class="status-online"><div class="status-dot"></div>Active</span>
+                </div>
+                <div class="monitor-item">
+                    <span>本地向量库</span>
+                    <span>ChromaDB (k=5)</span>
+                </div>
+                <div class="monitor-item">
+                    <span>主编排 LLM</span>
+                    <span>Qwen 2.5 (1.5B)</span>
+                </div>
+                <div class="monitor-item">
+                    <span>安全熔断兜底</span>
+                    <span>DeepSeek v4</span>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <div>User: xiuyan</div>
+            <div style="opacity: 0.5; margin-top: 2px;">v0.0.1 · Node Architecture</div>
+        </div>
+    </div>
+
+    <div class="main-chat-workspace">
+        <div class="chat-stream" id="chatStream">
+            <div class="message-row bot-type">
+                <div class="content-width-limiter">
+                    <div class="bubble-container">
+                        <div class="message-bubble">
+                            你好，逻辑检查点已通过。我是《三体》时间线助理。
+                            我已成功挂载本地向量库，请问需要查询哪一个历史纪元、技术跃迁或重大威慑事件？
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dock-input-wrapper">
+            <div class="content-width-limiter">
+                <div class="dock-input-box">
+                    <input type="text" id="userInput" placeholder="输入涉及时间轴的提问... (回车或点击 EXECUTE)" onkeydown="if(event.keyCode==13) sendMessage()">
+                    <button class="execute-btn" onclick="sendMessage()">EXECUTE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const chatStream = document.getElementById('chatStream');
+    const userInput = document.getElementById('userInput');
+
+    function createMessageRow(isUser, isThinking = false) {
+        const row = document.createElement('div');
+        row.className = `message-row ${isUser ? 'user-type' : 'bot-type'}`;
+
+        const limiter = document.createElement('div');
+        limiter.className = 'content-width-limiter';
+
+        const container = document.createElement('div');
+        container.className = 'bubble-container';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        if (isThinking) {
+            bubble.innerHTML = `<div class="thinking-state">⚡ 正在检索量子数据库并调用大模型进行跨纪元思考...</div>`;
+        }
+
+        container.appendChild(bubble);
+        limiter.appendChild(container);
+        row.appendChild(limiter);
+        chatStream.appendChild(row);
+
+        chatStream.scrollTop = chatStream.scrollHeight;
+        return bubble;
+    }
+
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // 1. 发送用户消息并清空
+        userInput.value = '';
+        const userBubble = createMessageRow(true);
+        userBubble.innerText = text;
+
+        // 2. 呼出流式加载气泡
+        const botBubble = createMessageRow(false, true);
+
+        try {
+            // 3. 请求 Flask 接口
+            const response = await fetch('http://127.0.0.1:5000/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: text })
+            });
+
+            const data = await response.json();
+
+            // 4. 更新模型最终的优雅回复
+            if (data.answer) {
+                botBubble.innerText = data.answer;
+            } else if (data.error) {
+                botBubble.innerHTML = `<span style="color: #ef4444;">❌ 系统内部异常: ${data.error}</span>`;
+            }
+        } catch (error) {
+            botBubble.innerHTML = `<span style="color: #ef4444;">❌ 寻址失败: 无法连接到本地 api_server.py，请确保后端服务已在后台启动。</span>`;
+        }
+
+        chatStream.scrollTop = chatStream.scrollHeight;
+    }
+</script>
+
+</body>
+</html>

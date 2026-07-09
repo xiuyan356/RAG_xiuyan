@@ -1,0 +1,20 @@
+# === 1. 向量数据库（绝对不能传！里面是几百兆的本地二进制索引和sqlite数据） ===
+chromadb/
+
+# === 2. 缓存文件（你日志里那个 texts_cache.pkl 以及 jieba 分词产生的缓存） ===
+texts_cache.pkl
+*.pkl
+*.cache
+__pycache__/
+*.pyc
+
+# === 3. 本地环境配置文件（后续用来存放大模型 API Key 隐私数据） ===
+.env
+.env.local
+
+# === 4. IDE 自动生成的专属配置（PyCharm 的项目配置文件，不需要传） ===
+.idea/
+
+# === 5. 虚拟环境（虽然你用的是外部公用的 ai_agent，但以防万一顺手防守一下） ===
+.venv/
+venv/
