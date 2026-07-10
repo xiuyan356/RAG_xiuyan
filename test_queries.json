@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "category": "高频词陷阱与噪声过滤",
+    "question": "FastAPI中如何编写一个处理路径参数的路由？",
+    "expected_source": "tutorial/path-params.md"
+  },
+  {
+    "id": 2,
+    "category": "高频词陷阱与噪声过滤",
+    "question": "如果在中间件 middleware 之外，我还想在每个请求前后执行全局代码，可以使用寿命事件 lifespan 吗？",
+    "expected_source": "tutorial/lifespan.md"
+  },
+  {
+    "id": 3,
+    "category": "高频词陷阱与噪声过滤",
+    "question": "FastAPI 路由中的 query 参数如果不传默认值，又是必填项，该怎么声明？",
+    "expected_source": "tutorial/query-params.md"
+  },
+  {
+    "id": 4,
+    "category": "高频词陷阱与噪声过滤",
+    "question": "在 FastAPI 中如何利用 Pydantic 结构体模型接收比普通 Query 字段更复杂的客户端 POST 请求体 Body 数据？",
+    "expected_source": "tutorial/body.md"
+  },
+  {
+    "id": 5,
+    "category": "重排模型偏好与文档过滤",
+    "question": "在带有多级嵌套路由的复杂服务中，如何利用 APIRouter 划分子路由模块、划分 Blueprints 结构以提升代码解耦度？",
+    "expected_source": "tutorial/bigger-applications.md"
+  },
+  {
+    "id": 6,
+    "category": "重排模型偏好与文档过滤",
+    "question": "若不希望依赖复杂的 HTTPBearer 插件，如何通过简单的 Header 依赖注入在服务入口层校验客户端特有的密钥 Token？",
+    "expected_source": "tutorial/dependencies/index.md"
+  },
+  {
+    "id": 7,
+    "category": "重排模型偏好与文档过滤",
+    "question": "如何在接口返回时通过 response_model 过滤敏感字段，或控制 Pydantic 模型的数据输出视图？",
+    "expected_source": "tutorial/response-model.md"
+  },
+  {
+    "id": 8,
+    "category": "长尾意图理解与泛化",
+    "question": "FastAPI 提供的 BackgroundTasks 是如何在 HTTP 响应正常返回客户端后，在后台继续执行低优先级的异步数据分析任务的？",
+    "expected_source": "tutorial/background-tasks.md"
+  },
+  {
+    "id": 9,
+    "category": "长尾意图理解与泛化",
+    "question": "面对跨域资源共享问题，如何在 APP 中全局挂载 CORSMiddleware 中间件来放行非同源前端网页页面的 Fetch 请求？",
+    "expected_source": "tutorial/cors.md"
+  },
+  {
+    "id": 10,
+    "category": "长尾意图理解与泛化",
+    "question": "在配合智能 Agent 进行自动化接口测试时，如何利用 TestClient 模拟高并发的网络状态并对断言数据状态码进行验证？",
+    "expected_source": "tutorial/testing.md"
+  },
+  {
+    "id": 11,
+    "category": "多模型配置与路由降级",
+    "question": "如果本地部署的 Ollama 推理服务由于硬件开销突然遭遇 502 网关死锁，如何在路由逻辑中捕捉此异常并切流至云端 DeepSeek 接口？",
+    "expected_source": "advanced/llm-fallback-route.md"
+  },
+  {
+    "id": 12,
+    "category": "多模型配置与路由降级",
+    "question": "如何通过多模型联合编排，在提取三体时间线文本特征时动态在本地 BGE-M3 模型与云端高维 Embedding 接口间切换？",
+    "expected_source": "advanced/embedding-switching.md"
+  },
+  {
+    "id": 13,
+    "category": "多模型配置与路由降级",
+    "question": "当主流的大模型 API 服务因并发限制抛出 429 速率限制错误时，如何设计指数退避的自动重试依赖机制？",
+    "expected_source": "advanced/retry-mechanisms.md"
+  },
+  {
+    "id": 14,
+    "category": "图状态管理与上下文穿透",
+    "question": "在 LangGraph 引擎驱动的多节点有向图中，如何设计带有 question 和 context 的 AgentState 字典结构体以避免数据流错乱？",
+    "expected_source": "graph/state-management.md"
+  },
+  {
+    "id": 15,
+    "category": "图状态管理与上下文穿透",
+    "question": "在图的评估或审核节点执行完毕后，如何保证生成的 final_llm 回复和检索到的纯文本段落能够原地更新并穿透返回给外部调用者？",
+    "expected_source": "graph/node-context-passthrough.md"
+  },
+  {
+    "id": 16,
+    "category": "图状态管理与上下文穿透",
+    "question": "如何为图结构引入基于内存的 MemorySaver 检查点，以便系统能在同一会话 session 内完美追踪多轮对话的历史上下文？",
+    "expected_source": "graph/persistence.md"
+  },
+  {
+    "id": 17,
+    "category": "混合检索与高级算法整合",
+    "question": "如何重写混合检索函数，将本地向量库 ChromaDB 检索到的语义相似度结果与 rank_bm25 关键词检索结果合并并进行 RRF 融合重排？",
+    "expected_source": "retrieval/rrf-hybrid-search.md"
+  },
+  {
+    "id": 18,
+    "category": "混合检索与高级算法整合",
+    "question": "在执行 jieba 分词处理长文本知识库时，如何自定义分词函数预处理数据，从而解决由于中文字符串未切词导致 BM25 无法召回的问题？",
+    "expected_source": "retrieval/chinese-tokenization.md"
+  },
+  {
+    "id": 19,
+    "category": "混合检索与高级算法整合",
+    "question": "为了保证复杂混合检索算法返回的数据能够被安全序列化为 JSON，如何将多检索器返回的 Document 对象列表高效转换为纯文本字符串？",
+    "expected_source": "retrieval/document-serialization.md"
+  },
+  {
+    "id": 20,
+    "category": "异步运行时与死代码重构",
+    "question": "如果在全局定义的自定义异常捕获块中，误在 print 堆栈跟踪代码之前先执行了 raise 语句，这种死代码对日志排查会有什么危害？",
+    "expected_source": "advanced/exception-handling-deadcode.md"
+  },
+  {
+    "id": 21,
+    "category": "异步运行时与死代码重构",
+    "question": "在使用 Uvicorn 启动服务器并开启 reload 机制时，若将传入的模块字符串错误声明为 app:app，可能会引发何种ASGI加载模块冲突？",
+    "expected_source": "server/uvicorn-reloader-errors.md"
+  },
+  {
+    "id": 22,
+    "category": "异步运行时与死代码重构",
+    "question": "在高性能异步路由中混用会导致线程阻塞的同步向量数据库读取操作（如旧版 Chroma 接口），应如何使用 run_in_executor 进行优化？",
+    "expected_source": "server/async-blocking-io.md"
+  },
+  {
+    "id": 23,
+    "category": "长文本切片与边界条件",
+    "question": "在使用 RecursiveCharacterTextSplitter 切分包含大量复杂时间符号、特殊纪元符号的长文本文件时，如何设计 chunk_overlap 避免信息截断？",
+    "expected_source": "retrieval/text-splitting-boundaries.md"
+  },
+  {
+    "id": 24,
+    "category": "长文本切片与边界条件",
+    "question": "当检索出来的召回文档片区大小（Chunk Size）超出了大模型单次请求的上下文窗口上限时，如何编写自适应的文本截断器？",
+    "expected_source": "retrieval/context-window-overflow.md"
+  },
+  {
+    "id": 25,
+    "category": "安全熔断与异常检测",
+    "question": "当外部 API 网关或本地模型接口发生无法解析的非 200 HTTP 状态码时，如何在不依赖第三方熔断库的情况下实现一个纯 Python 的轻量化计数熔断器？",
+    "expected_source": "advanced/circuit-breaker.md"
+  },
+  {
+    "id": 26,
+    "category": "安全熔断与异常检测",
+    "question": "如果在 RAG 检索流程中，向量检索器因为特殊字符搜索返回了空文档列表，如何设置默认的提示词防御兜底策略避免 LLM 幻觉生成？",
+    "expected_source": "retrieval/empty-results-defense.md"
+  },
+  {
+    "id": 27,
+    "category": "流式传输与长连接",
+    "question": "如何利用 FastAPI 的 StreamingResponse 接口配合大模型流式响应生成器，实现类似 ChatGPT 在前端打字机般逐字吐出文本的效果？",
+    "expected_source": "tutorial/streaming-responses.md"
+  },
+  {
+    "id": 28,
+    "category": "流式传输与长连接",
+    "question": "在高度复杂的全双工智能客服会话场景下，如何使用 FastAPI 的 WebSocket 协议维护多路由节点的实时双向数据穿透？",
+    "expected_source": "tutorial/websockets.md"
+  },
+  {
+    "id": 29,
+    "category": "依赖注入的高级技巧",
+    "question": "如何使用 FastAPI 的 Security 声明依赖项，以便在依赖项内部直接提取并验证客户端 OAuth2 密码模式携带的 scopes 作用域权限？",
+    "expected_source": "tutorial/security/oauth2-scopes.md"
+  },
+  {
+    "id": 30,
+    "category": "依赖注入的高级技巧",
+    "question": "如果在多个业务节点中存在重复数据库会话调用的开销，如何通过将依赖注入声明在 APIRouter 的全局 dependencies 中实现全量路由拦截？",
+    "expected_source": "tutorial/dependencies/dependencies-in-path-operation-decorators.md"
+  }
+]

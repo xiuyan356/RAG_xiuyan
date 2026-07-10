@@ -20,3 +20,10 @@
 ### 下一步计划
 1. 引入 Reranker（BGE-reranker-v2-m3 / cross-encoder）对 RRF 粗排结果进行精排
 2. 如 Reranker 后仍受高频词干扰，再考虑优化 jieba 分词器（添加自定义词典）
+
+### 变更
+1. 引入 Reranker后，测试30条样本，取得还不错的效果
+2. 另外修改了一些文本
+
+### 下一步计划
+1. 合理调整Vector和BM25权重

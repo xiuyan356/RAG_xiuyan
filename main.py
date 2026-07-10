@@ -8,7 +8,7 @@ Version :0.0.1
 from Graph.workflow import app
 
 def main():
-    user_input = input('请输入关于《三体》的问题：')
+    user_input = input('请输入问题：')
     # 初始化状态
     initial_state = {
         "question": user_input,
