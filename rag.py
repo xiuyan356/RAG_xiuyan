@@ -5,29 +5,32 @@ Author : 王聪
 Date :2026/7/8
 Version :0.0.1
 """
-import os
-import jieba
-import pickle
-from typing import TypedDict
+import os #操作系统相关功能。
+import jieba # 中文分词器
+import pickle # 文档切分持久化依赖
+from typing import TypedDict #定义 AgentState 这个图状态结构体的
 from config import config
-from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
-from collections import defaultdict
-from langchain_ollama import OllamaEmbeddings
-from langchain_text_splitters import MarkdownTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_chroma import Chroma # 向量数据库+ 相似度检索引擎
+from langchain_openai import ChatOpenAI # LangChain 提供的通用客户端，兼容各种格式调用任何兼容 OpenAI API协议的/chat/completions 接口
+from collections import defaultdict #让字典在访问不存在的 key 时自动返回 0.0，让RRF不用判断key是否存在
+from langchain_ollama import OllamaEmbeddings # LangChain 提供的专用嵌入客户端
+from langchain_text_splitters import MarkdownTextSplitter # Markdown格式分割器
+from langchain_core.prompts import ChatPromptTemplate # 构造对话模板（system/user 角色消息） 提示词
+from langchain_community.retrievers import BM25Retriever # BM25 关键词检索器（基于词频统计召回文档）
+from langchain_core.output_parsers import StrOutputParser #将 LLM 输出解析为纯字符串
+from langchain_community.document_loaders import UnstructuredMarkdownLoader # 读取 .md 文件依赖，保留原始结构
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough, RunnableParallel
+# RunnableLambda: 把普通函数包装成可链式调用的 Runnable
+# RunnablePassthrough: 透传输入，不改变数据（常用来保留原始 question）
+# RunnableParallel: 并行执行多个 Runnable，合并输出（用于同时生成 context 和 question）
 
 
-CHROMA_DIR = "chromadb"
-KNOWLEDGE_DIR = "knowledge"
-TEXTS_CACHE_FILE = "texts_cache.pkl"  # 新增：缓存文件名
+CHROMA_DIR = "chromadb" # 向量索引
+KNOWLEDGE_DIR = "knowledge" # 原始知识文件
+TEXTS_CACHE_FILE = "texts_cache.pkl"  # 切割后的Document
 
-from sentence_transformers import CrossEncoder
-reranker = CrossEncoder(r"C:\Users\王聪\.cache\huggingface\hub\models--BAAI--bge-reranker-base\snapshots\2cfc18c9415c912f9d8155881c133215df768a70")
+from sentence_transformers import CrossEncoder # 导入 transformers的交叉编码器：CrossEncoder
+reranker = CrossEncoder(config.CrossEncoder_PATH) # 实例化模型对象
 
 def get_all_fastapi_texts(knowledge_dir=KNOWLEDGE_DIR, force_reload=False):
     """
@@ -37,12 +40,12 @@ def get_all_fastapi_texts(knowledge_dir=KNOWLEDGE_DIR, force_reload=False):
     if not force_reload and os.path.exists(TEXTS_CACHE_FILE):
         try:
             with open(TEXTS_CACHE_FILE, 'rb') as f:
-                print(f"⚡ 从缓存快速加载文本切片: {TEXTS_CACHE_FILE}")
+                print(f" 从缓存快速加载文本切片: {TEXTS_CACHE_FILE}")
                 return pickle.load(f)
         except Exception as e:
-            print(f"⚠️ 缓存读取失败（可能版本不兼容），重新生成: {e}")
+            print(f" 缓存读取失败（可能版本不兼容），重新生成: {e}")
 
-    print("📂 正在扫描并切分所有 Markdown 文件（首次或强制重建）...")
+    print(" 正在扫描并切分所有 Markdown 文件（首次或强制重建）...")
     all_chunks = []
     splitter = MarkdownTextSplitter(chunk_size=800, chunk_overlap=100)
 
@@ -65,13 +68,13 @@ def get_all_fastapi_texts(knowledge_dir=KNOWLEDGE_DIR, force_reload=False):
                 except Exception as e:
                     print(f"读取文件失败 {relative_path}: {str(e)}")
                     continue
-        # 🆕 新增：将结果写入缓存
+        # 新增：将结果写入缓存
         try:
             with open(TEXTS_CACHE_FILE, 'wb') as f:
                 pickle.dump(all_chunks, f)
-                print(f"✅ 文本切片已缓存至 {TEXTS_CACHE_FILE} (共 {len(all_chunks)} 个片段)")
+                print(f"文本切片已缓存至 {TEXTS_CACHE_FILE} (共 {len(all_chunks)} 个片段)")
         except Exception as e:
-            print(f"⚠️ 缓存保存失败（不影响运行）: {e}")
+            print(f"缓存保存失败（不影响运行）: {e}")
 
 
     return all_chunks
@@ -88,10 +91,10 @@ embeddings = OllamaEmbeddings(
 )
 
 if not os.path.exists(CHROMA_DIR) or not os.listdir(CHROMA_DIR):
-    print("📦 正在初始化 Chroma 向量数据库，请稍候...")
+    print(" 正在初始化 Chroma 向量数据库，请稍候...")
     vs = Chroma.from_documents(texts, embeddings, persist_directory=CHROMA_DIR)
 else:
-    print("🔄 检测到已有数据库，正在直接加载本地 Chroma 索引...")
+    print("检测到已有数据库，正在直接加载本地 Chroma 索引...")
     vs = Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
 
 vec_retriever = vs.as_retriever(search_kwargs={'k': 20})
@@ -111,7 +114,7 @@ bm25_retriever.k = 20
 
 
 # ==================== RRF 融合 ====================
-def rrf_retrieve(query, k=20, rrf_k=60, weight_bm25=0.3, weight_vector=0.7):
+def rrf_retrieve(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
     """
     RRF 融合：BM25 Top 20 + Vector Top 20 → 融合排序 → 返回 Top k（默认 20）
     """
