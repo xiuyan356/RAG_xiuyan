@@ -8,8 +8,9 @@ Version :0.0.1
 import os #操作系统相关功能。
 import jieba # 中文分词器
 import pickle # 文档切分持久化依赖
-from typing import TypedDict #定义 AgentState 这个图状态结构体的
 from config import config
+from typing import TypedDict, List #定义 AgentState 这个图状态结构体的
+from langchain_core.documents import Document
 from langchain_chroma import Chroma # 向量数据库+ 相似度检索引擎
 from langchain_openai import ChatOpenAI # LangChain 提供的通用客户端，兼容各种格式调用任何兼容 OpenAI API协议的/chat/completions 接口
 from collections import defaultdict #让字典在访问不存在的 key 时自动返回 0.0，让RRF不用判断key是否存在
@@ -112,9 +113,15 @@ bm25_retriever = BM25Retriever.from_documents(
 # BM25 默认 k=4，需要扩大候选集参与RRF融合
 bm25_retriever.k = 20
 
+class AgentState(TypedDict):
+    question: str
+    context: str
+    answer: str
+    raw_documents: List[Document]    # 用于存放 RRF 混合检索出来的 20 个粗筛文档列表
+    final_documents: List[Document]  # 用于存放 Reranker 精排挑出来的 Top 5 文档列表
 
 # ==================== RRF 融合 ====================
-def rrf_retrieve(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
+def retrieve_node(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
     """
     RRF 融合：BM25 Top 20 + Vector Top 20 → 融合排序 → 返回 Top k（默认 20）
     """
@@ -181,20 +188,15 @@ def rerank_documents(query, candidate_docs, top_n=5):
 #     "question": RunnablePassthrough()
 # })
 
-#   定义图状态结构体
-class AgentState(TypedDict):
-    question: str
-    context: str
-    answer: str
 
 def RAG_answer_node(data: AgentState) -> AgentState:
     user_query = data['question']
 
     # 第一步：RRF 融合，拿 20 个候选
-    candidate_docs = rrf_retrieve(user_query, k=20)
+    candidate_docs = retrieve_node(user_query, k=20) # 调用RRF函数
 
     # 第二步：Reranker 精排，取 Top 5
-    final_docs = rerank_documents(user_query, candidate_docs, top_n=5)
+    final_docs = rerank_documents(user_query, candidate_docs, top_n=5) # 调用Reranker函数
 
     # 拼接上下文
     context_str = "\n\n".join([doc.page_content for doc in final_docs])

@@ -8,7 +8,7 @@ Version :0.0.1
 from rag import (
     bm25_retriever,
     vec_retriever,
-    rrf_retrieve
+    retrieve_node
 )
 
 
@@ -35,7 +35,7 @@ for i, doc in enumerate(vec_docs):
 
 print("\n========== RRF ==========")
 
-rrf_docs = rrf_retrieve(query)
+rrf_docs = retrieve_node(query)
 
 for i, doc in enumerate(rrf_docs):
     print(i+1, doc.metadata)
