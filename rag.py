@@ -121,7 +121,7 @@ class AgentState(TypedDict):
     final_documents: List[Document]  # 用于存放 Reranker 精排挑出来的 Top 5 文档列表
 
 # ==================== RRF 融合 ====================
-def retrieve_node(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
+def rrf_retrieve(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
     """
     RRF 融合：BM25 Top 20 + Vector Top 20 → 融合排序 → 返回 Top k（默认 20）
     """
@@ -153,6 +153,20 @@ def retrieve_node(query, k=20, rrf_k=60, weight_bm25=0.2, weight_vector=0.8):
 
     return result_docs
 
+def retrieve_node(data: AgentState) -> dict:
+    """
+    RRF 检索节点：从状态中获取用户问题，执行双路混合检索与 RRF 分数融合，
+    将生成的 20 个粗筛候选文档存入状态机的 raw_documents 字段。
+    """
+    # 1. 从全局状态中读取用户当前的提问
+    user_query = data.get("question")
+
+    # 2. 调用原有的 rrf_retrieve 核心业务函数进行混合检索与融合去重
+    # 默认设置 k=20，召回 20 个候选片段作为重排池
+    candidate_docs = rrf_retrieve(query=user_query, k=20)
+
+    # 3. 将结果以字典形式返回，触发全局状态的更新
+    return {"raw_documents": candidate_docs}
 
 # ==================== Reranker 精排 ====================
 def rerank_documents(query, candidate_docs, top_n=5):
@@ -182,33 +196,42 @@ def rerank_documents(query, candidate_docs, top_n=5):
 
     return final_docs
 
-# 组装输入映射字典
-# handler = RunnableParallel({
-#     "context": RunnableLambda(rrf_retrieve),
-#     "question": RunnablePassthrough()
-# })
+def rerank_node(data: AgentState) -> dict:
+    """
+    Reranker 节点：从状态中获取问题和粗筛文档，调用精排算法，
+    将精排后的 Top 5 文档写入状态机的 final_documents 字段。
+    """
+    # 1. 从全局状态中读取用户提问和第一步捞出来的粗筛文档列表
+    user_query = data.get("question")
+    candidate_docs = data.get("raw_documents", [])
+
+    # 2. 调用你写好的原版精排业务函数
+    final_docs = rerank_documents(query=user_query, candidate_docs=candidate_docs, top_n=5)
+
+    # 3. 将结果以字典形式返回，触发全局状态的更新
+    return {"final_documents": final_docs}
 
 
-def RAG_answer_node(data: AgentState) -> AgentState:
-    user_query = data['question']
+def generate_node(data: AgentState) -> dict:
+    """
+    生成节点：从状态中读取精排文档，组装上下文提示词，
+    调用大模型生成最终技术回答，并写回状态机的 context 和 answer 字段。
+    """
+    # 1. 从全局状态中读取用户提问和第二步精排出的核心文档列表
+    user_query = data.get("question")
+    final_docs = data.get("final_documents", [])
 
-    # 第一步：RRF 融合，拿 20 个候选
-    candidate_docs = retrieve_node(user_query, k=20) # 调用RRF函数
-
-    # 第二步：Reranker 精排，取 Top 5
-    final_docs = rerank_documents(user_query, candidate_docs, top_n=5) # 调用Reranker函数
-
-    # 拼接上下文
+    # 2. 拼接核心上下文背景墙
     context_str = "\n\n".join([doc.page_content for doc in final_docs])
 
-    # 提示词模板
+    # 3. 配置结构化对话提示词模板
     prompt = ChatPromptTemplate.from_messages([
         ("system",
          "你是一个专业的 FastAPI 技术文档专家。请严格根据以下参考资料回答用户的技术问题。如果资料中没有提及相关实现，请直接回答不知道，严禁虚构 API 或参数。"),
         ("user", "参考资料：\n{context}\n\n用户问题：{question}")
     ])
 
-    # 3. 双保险 LLM 降级策略
+    # 4. 初始化双保险 LLM 驱动引擎
     ollama_llm = ChatOpenAI(
         model="qwen2.5:1.5b",
         temperature=0,
@@ -225,26 +248,25 @@ def RAG_answer_node(data: AgentState) -> AgentState:
         temperature=0.0,
     )
 
+    # 绑定容灾降级策略
     final_llm = ollama_llm.with_fallbacks([deepseek_llm])
 
-    # chain = handler | prompt | final_llm | StrOutputParser()
+    # 5. 构建链条并执行推理
     chain = prompt | final_llm | StrOutputParser()
-
-    # response = chain.invoke({'context': context_str, 'question': user_query})
     response = chain.invoke({
         'context': context_str,
         'question': user_query
     })
 
-    # 直接原地更新原字典
-    data['context'] = context_str
-    data['answer'] = response
-
-    return data
+    # 6. 将生成的上下文墙和答案一并交还给 LangGraph 全局状态
+    return {
+        "context": context_str,
+        "answer": response
+    }
 
 
 if __name__ == "__main__":
     test_query = "FastAPI 怎么定义路径参数？"
     initial_state = {"question": test_query, "context": "", "answer": ""}
-    final_state = RAG_answer_node(initial_state)
+    final_state = generate_node(initial_state)
     print("\n💡 回答:", final_state['answer'])
