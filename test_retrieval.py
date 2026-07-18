@@ -5,7 +5,7 @@ Author : 王聪
 Date :2026/7/9
 Version :0.0.1
 """
-from rag import (
+from old_rag import (
     bm25_retriever,
     vec_retriever,
     rrf_retrieve
