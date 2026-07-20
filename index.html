@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>《三体》时间线 · Quantum RAG Agent</title>
+    <title>FastAPI 智能知识库 · RAG Control Panel</title>
     <style>
         :root {
-            --bg-main: #070913;
-            --bg-sidebar: #0f1322;
-            --bg-chat: #0b0f19;
-            --accent-cyan: #00f2fe;
-            --accent-blue: #3b82f6;
-            --text-main: #f1f5f9;
-            --text-muted: #64748b;
-            --border-glow: rgba(0, 242, 254, 0.08);
-            --bubble-user: linear-gradient(135deg, #1e40af, #3b82f6);
-            --bubble-bot: #131a30;
+            /* Gemini 风格的浅色微透明配色方案 */
+            --bg-main: #f0f4f9;
+            --bg-sidebar: rgba(240, 244, 249, 0.95);
+            --bg-chat: #ffffff;
+            --text-main: #1f1f1f;
+            --text-muted: #5f6368;
+            --border-line: rgba(0, 0, 0, 0.06);
+            --bubble-user: #e9eef6;
+            --bubble-bot: transparent;
+            --accent-blue: #1a73e8;
+            --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.04);
         }
 
         * {
@@ -25,7 +26,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             background-color: var(--bg-main);
             color: var(--text-main);
             height: 100vh;
@@ -33,11 +34,11 @@
             overflow: hidden;
         }
 
-        /* ================== 左侧现代感侧边栏 ================== */
+        /* ================== 左侧微透明简约侧边栏 ================== */
         .sidebar {
-            width: 280px;
+            width: 300px;
             background-color: var(--bg-sidebar);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            border-right: 1px solid var(--border-line);
             display: flex;
             flex-direction: column;
             padding: 24px;
@@ -48,95 +49,119 @@
         .sidebar-top {
             display: flex;
             flex-direction: column;
-            gap: 30px;
+            gap: 24px;
         }
 
         .brand {
             display: flex;
             flex-direction: column;
+            padding-left: 8px;
         }
 
         .brand h1 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, #fff, var(--accent-cyan));
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f1f1f;
+            background: linear-gradient(90deg, #1a73e8, #7460ee);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
         }
 
         .brand span {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
-            text-transform: uppercase;
             margin-top: 4px;
-            letter-spacing: 1px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
 
-        /* 模拟新建对话/功能按钮 */
         .new-chat-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border: 1px solid var(--border-line);
             color: var(--text-main);
-            padding: 12px;
-            border-radius: 10px;
+            padding: 12px 16px;
+            border-radius: 24px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: all 0.2s;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.2s ease;
         }
 
         .new-chat-btn:hover {
-            background: rgba(0, 242, 254, 0.05);
-            border-color: rgba(0, 242, 254, 0.3);
-            color: var(--accent-cyan);
+            background: #f8fafc;
+            border-color: rgba(26, 123, 232, 0.3);
+            color: var(--accent-blue);
         }
 
         .system-monitor {
             margin-top: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid var(--border-line);
         }
 
+        /* 修复核心：使用 flex + gap，并且弹性分配空间，右侧文字靠右对齐 */
         .monitor-item {
             display: flex;
             justify-content: space-between;
-            font-size: 0.8rem;
+            align-items: flex-start; /* 顶部对齐，防止折行后居中扭曲 */
+            font-size: 0.85rem;
             color: var(--text-muted);
             margin-bottom: 12px;
             padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+            gap: 12px;
+        }
+
+        .monitor-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .monitor-item span:first-child {
+            flex-shrink: 0; /* 固定左侧标签，绝不压缩 */
+            font-weight: 500;
         }
 
         .monitor-item span:last-child {
-            color: var(--accent-cyan);
-            font-family: monospace;
+            color: #3c4043;
+            font-weight: 500;
+            text-align: right; /* 右侧文字向右靠拢，即便折行也好看 */
+            word-break: break-word; /* 允许长单词换行 */
         }
 
         .status-online {
-            color: #10b981 !important;
-            display: flex;
+            color: #137333 !important;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
+            background: #e6f4ea;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
         }
 
         .status-dot {
             width: 6px;
             height: 6px;
-            background: #10b981;
+            background: #137333;
             border-radius: 50%;
-            box-shadow: 0 0 8px #10b981;
         }
 
         .sidebar-footer {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            line-height: 1.5;
+            padding-left: 8px;
         }
 
-        /* ================== 右侧全屏工作区 ================== */
+        /* ================== 右侧白色无界主工作区 ================== */
         .main-chat-workspace {
             flex: 1;
             background-color: var(--bg-chat);
@@ -145,31 +170,28 @@
             position: relative;
         }
 
-        /* 现代流式对话滚动区 */
         .chat-stream {
             flex: 1;
             overflow-y: auto;
-            padding: 40px 0 140px 0; /* 为底部悬浮框留出充足空间 */
+            padding: 40px 0 160px 0;
             display: flex;
             flex-direction: column;
         }
 
-        /* 限制内容的响应式阅读宽度，两边无限平铺，但文字不失散 */
         .content-width-limiter {
             width: 100%;
-            max-width: 800px;
+            max-width: 740px;
             margin: 0 auto;
             padding: 0 24px;
         }
 
         .message-row {
             width: 100%;
-            padding: 24px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            animation: fadeIn 0.3s ease-out forwards;
+            padding: 20px 0;
+            animation: fadeIn 0.25s ease-out forwards;
         }
 
-        /* 用户消息和AI消息采用主流的背景色块交替或靠右设计 */
+        /* 用户消息：居右，灰色椭圆轻量气泡 */
         .message-row.user-type .bubble-container {
             display: flex;
             justify-content: flex-end;
@@ -177,66 +199,90 @@
 
         .message-row.user-type .message-bubble {
             background: var(--bubble-user);
-            color: #fff;
-            border-radius: 18px;
-            border-bottom-right-radius: 4px;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            color: var(--text-main);
+            border-radius: 20px;
+            padding: 12px 20px;
+            box-shadow: none;
         }
 
+        /* AI消息：不使用强色块包裹，直接左对齐平铺暴露文字，更具对话呼吸感 */
         .message-row.bot-type .message-bubble {
             background: var(--bubble-bot);
             color: var(--text-main);
-            border-radius: 18px;
-            border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 0px 4px;
         }
 
         .message-bubble {
             max-width: 85%;
-            padding: 14px 22px;
-            font-size: 0.98rem;
-            line-height: 1.65;
+            font-size: 1rem;
+            line-height: 1.7;
             white-space: pre-wrap;
             word-break: break-all;
         }
 
+        /* 高级调试状态条 */
+        .cache-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        .tag-l1 { background: #e8f0fe; color: #1a73e8; }
+        .tag-l2 { background: #e8f5e9; color: #1b5e20; }
+        .tag-none { background: #f1f3f4; color: #5f6368; }
+
         .thinking-state {
-            color: var(--accent-cyan);
+            color: var(--accent-blue);
             font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            font-weight: 500;
         }
 
-        /* ================== 悬浮居中流线型输入区 ================== */
+        /* Gemini 标志性的彩虹流光等待条 */
+        .gemini-loader {
+            height: 4px;
+            width: 100%;
+            max-width: 200px;
+            margin-top: 8px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #4285f4, #9b51e0, #e94235, #4285f4);
+            background-size: 300% 100%;
+            animation: moveGradient 2s linear infinite;
+        }
+
+        /* ================== 悬浮居中简约输入区 ================== */
         .dock-input-wrapper {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            background: linear-gradient(transparent, var(--bg-chat) 40%);
-            padding: 30px 0 40px 0;
-            pointer-events: none; /* 让上层空白可以点击滚动 */
+            background: linear-gradient(transparent 10%, var(--bg-chat) 70%);
+            padding: 20px 0 34px 0;
+            pointer-events: none;
         }
 
         .dock-input-box {
-            max-width: 760px;
+            max-width: 740px;
             margin: 0 auto;
-            background: #131826;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            padding: 8px 14px;
+            background: #f0f4f9;
+            border: 1px solid transparent;
+            border-radius: 32px;
+            padding: 6px 10px 6px 22px;
             display: flex;
             align-items: center;
             gap: 12px;
-            pointer-events: auto; /* 恢复交互 */
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            transition: border-color 0.3s, box-shadow 0.3s;
+            pointer-events: auto;
+            transition: all 0.2s ease;
         }
 
         .dock-input-box:focus-within {
-            border-color: rgba(0, 242, 254, 0.3);
-            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.08);
+            border-color: transparent;
+            background: #ffffff;
+            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
         }
 
         .dock-input-box input {
@@ -244,43 +290,58 @@
             background: transparent;
             border: none;
             outline: none;
-            color: #fff;
-            font-size: 1rem;
-            padding: 10px 4px;
+            color: var(--text-main);
+            font-size: 1.05rem;
+            padding: 12px 0;
         }
 
         .dock-input-box input::placeholder {
-            color: #4b5563;
+            color: #757575;
         }
 
         .execute-btn {
-            background: rgba(0, 242, 254, 0.06);
-            border: 1px solid rgba(0, 242, 254, 0.2);
-            color: var(--accent-cyan);
-            padding: 10px 20px;
-            border-radius: 10px;
+            background: #ffffff;
+            border: 1px solid var(--border-line);
+            color: var(--text-main);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
             cursor: pointer;
-            font-weight: 500;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .execute-btn:hover {
-            background: var(--accent-cyan);
-            color: #000;
+        .dock-input-box input:placeholder-shown + .execute-btn {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .execute-btn:hover:not(:disabled) {
+            background: var(--accent-blue);
+            color: #ffffff;
             border-color: transparent;
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            transform: scale(1.05);
         }
 
         /* 动画与滚动美化 */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .chat-stream::-webkit-scrollbar { width: 6px; }
-        .chat-stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        .chat-stream::-webkit-scrollbar { width: 8px; }
+        .chat-stream::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 10px; }
+        .chat-stream::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.15); }
     </style>
 </head>
 <body>
@@ -288,34 +349,46 @@
     <div class="sidebar">
         <div class="sidebar-top">
             <div class="brand">
-                <h1>THREE-BODY RAG</h1>
-                <span>Quantum Knowledge Graph</span>
+                <h1>FastAPI RAG Platform</h1>
+                <span>Multilevel Intelligent Cache Architecture</span>
             </div>
             <button class="new-chat-btn" onclick="window.location.reload()">
-                <span>+</span> 清空并重启图节点
+                <span>＋</span> 新建对话
             </button>
             <div class="system-monitor">
                 <div class="monitor-item">
-                    <span>LangGraph 引擎</span>
-                    <span class="status-online"><div class="status-dot"></div>Active</span>
+                    <span>系统状态</span>
+                    <span class="status-online"><div class="status-dot"></div>Online</span>
                 </div>
                 <div class="monitor-item">
-                    <span>本地向量库</span>
-                    <span>ChromaDB (k=5)</span>
+                    <span>双路检索器</span>
+                    <span>BM25 + Chroma (k=20)</span>
                 </div>
                 <div class="monitor-item">
-                    <span>主编排 LLM</span>
-                    <span>Qwen 2.5 (1.5B)</span>
+                    <span>精排引擎</span>
+                    <span>CrossEncoder (bge-reranker)</span>
                 </div>
                 <div class="monitor-item">
-                    <span>安全熔断兜底</span>
-                    <span>DeepSeek v4</span>
+                    <span>本地核心 LLM</span>
+                    <span>Qwen 2.5 3B (Ollama)</span>
+                </div>
+                <div class="monitor-item">
+                    <span>云端熔断容灾</span>
+                    <span>DeepSeek (Fallback)</span>
+                </div>
+                <div class="monitor-item">
+                    <span>内存热缓存</span>
+                    <span>RedisVL Vector Cache (L1)</span>
+                </div>
+                <div class="monitor-item">
+                    <span>磁盘冷备份</span>
+                    <span>SQLite3 Ledger (L2)</span>
                 </div>
             </div>
         </div>
         <div class="sidebar-footer">
-            <div>User: xiuyan</div>
-            <div style="opacity: 0.5; margin-top: 2px;">v0.0.1 · Node Architecture</div>
+            <div>环境算子: dev_agent</div>
+            <div style="opacity: 0.5; margin-top: 2px;">v0.7.0 · API Server Port: 5000</div>
         </div>
     </div>
 
@@ -325,8 +398,7 @@
                 <div class="content-width-limiter">
                     <div class="bubble-container">
                         <div class="message-bubble">
-                            你好，逻辑检查点已通过。我是《三体》时间线助理。
-                            我已成功挂载本地向量库，请问需要查询哪一个历史纪元、技术跃迁或重大威慑事件？
+                            你好！我是你的高级全栈组件技术助理。我已为你加载了包含 FastAPI、Chroma 等多个跨框架的技术资产库。请随时向我提问复杂的系统架构方案！
                         </div>
                     </div>
                 </div>
@@ -336,8 +408,8 @@
         <div class="dock-input-wrapper">
             <div class="content-width-limiter">
                 <div class="dock-input-box">
-                    <input type="text" id="userInput" placeholder="输入涉及时间轴的提问... (回车或点击 EXECUTE)" onkeydown="if(event.keyCode==13) sendMessage()">
-                    <button class="execute-btn" onclick="sendMessage()">EXECUTE</button>
+                    <input type="text" id="userInput" placeholder="问问我：How to use APIRouter in FastAPI and save something into Chroma database?" onkeydown="if(event.keyCode==13) sendMessage()">
+                    <button class="execute-btn" id="sendBtn" onclick="sendMessage()">➔</button>
                 </div>
             </div>
         </div>
@@ -346,6 +418,12 @@
 <script>
     const chatStream = document.getElementById('chatStream');
     const userInput = document.getElementById('userInput');
+
+    // 动态监听输入框，控制发送按钮的半透明状态
+    userInput.addEventListener('input', () => {
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.disabled = !userInput.value.trim();
+    });
 
     function createMessageRow(isUser, isThinking = false) {
         const row = document.createElement('div');
@@ -361,7 +439,10 @@
         bubble.className = 'message-bubble';
 
         if (isThinking) {
-            bubble.innerHTML = `<div class="thinking-state">⚡ 正在检索量子数据库并调用大模型进行跨纪元思考...</div>`;
+            bubble.innerHTML = `
+                <div class="thinking-state">正在组织多框架知识库分片并调度图流引擎思考...</div>
+                <div class="gemini-loader"></div>
+            `;
         }
 
         container.appendChild(bubble);
@@ -377,16 +458,17 @@
         const text = userInput.value.trim();
         if (!text) return;
 
-        // 1. 发送用户消息并清空
         userInput.value = '';
+        document.getElementById('sendBtn').disabled = true;
+
+        // 1. 发送用户消息
         const userBubble = createMessageRow(true);
         userBubble.innerText = text;
 
-        // 2. 呼出流式加载气泡
-        const botBubble = createMessageRow(false, true);
+        // 2. 局部变量锁定当前对话的 bot 气泡
+        const currentBotBubble = createMessageRow(false, true);
 
         try {
-            // 3. 请求 Flask 接口
             const response = await fetch('http://127.0.0.1:5000/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -395,17 +477,36 @@
 
             const data = await response.json();
 
-            // 4. 更新模型最终的优雅回复
             if (data.answer) {
-                botBubble.innerText = data.answer;
-            } else if (data.error) {
-                botBubble.innerHTML = `<span style="color: #ef4444;">❌ 系统内部异常: ${data.error}</span>`;
+                // 安全转义函数：防止大模型的特殊符号 (如 {}, <, >) 憋死文本渲染
+                let safeText = data.answer
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;")
+                    .replace(/\n/g, "<br>"); // 保持换行
+
+                // 根据 cache_hit 状态追加精美的小标签
+                if (data.cache_hit === "L1_Redis") {
+                    safeText += `<br><span class="cache-tag tag-l1">⚡ L1 RedisVL 向量语义缓存秒回</span>`;
+                } else if (data.cache_hit === "L2_SQLite") {
+                    safeText += `<br><span class="cache-tag tag-l2">💾 L2 SQLite 持久账本命中</span>`;
+                } else if (data.cache_hit === "None") {
+                    safeText += `<br><span class="cache-tag tag-none">🔍 RAG 图流实时穿透计算</span>`;
+                }
+
+                currentBotBubble.innerHTML = safeText;
+            } else if (data.detail) {
+                currentBotBubble.innerHTML = `<span style="color: #ea4335;">❌ 接口反馈异常: ${data.detail}</span>`;
             }
         } catch (error) {
-            botBubble.innerHTML = `<span style="color: #ef4444;">❌ 寻址失败: 无法连接到本地 api_server.py，请确保后端服务已在后台启动。</span>`;
+            currentBotBubble.innerHTML = `<span style="color: #ea4335;">❌ 寻址失败: 无法连接到本地后端服务。</span>`;
+        } finally {
+            // 确保无论如何都会释放按钮锁
+            document.getElementById('sendBtn').disabled = false;
+            chatStream.scrollTop = chatStream.scrollHeight;
         }
-
-        chatStream.scrollTop = chatStream.scrollHeight;
     }
 </script>
 

@@ -23,17 +23,22 @@ def generate_node(data: AgentState) -> dict:
     # 2. 拼接核心上下文背景墙
     context_str = "\n\n".join([doc.page_content for doc in final_docs])
 
-    # 3. 构建链条（直接复用从外部导入的 rag_prompt 和 final_llm）
-    chain = rag_prompt | final_llm | StrOutputParser()
+    # 3. 构建链条（移除 StrOutputParser 以保留响应元数据）
+    chain = rag_prompt | final_llm
 
-    # 4. 执行推理生成
+    # 4. 执行推理生成（此时 response 是一个完整的带有元数据的对象）
     response = chain.invoke({
         'context': context_str,
         'question': user_query
     })
 
-    # 5. 将结果回传状态机
+    # 5. 【核心探针逻辑】在 return 之前抓取模型名称并打印
+    meta = getattr(response, "response_metadata", {})
+    model_used = meta.get("model_name", meta.get("model", getattr(response, "model", "qwen2.5:3b")))
+    print(f"\n [链路探针] 当前响应生成模型: 【{model_used}】")
+
+    # 6. 将结果回传状态机（使用 response.content 提取纯文本答案）
     return {
         "context": context_str,
-        "answer": response
+        "answer": response.content
     }
